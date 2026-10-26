@@ -1,5 +1,16 @@
 import { useEffect, useState } from "react";
 import { getDashboard } from "../api/dashboardApi";
+import {
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+} from "recharts";
+
 
 const formatNombre = (valeur) =>
     new Intl.NumberFormat("fr-FR", {
@@ -91,6 +102,10 @@ export default function Dashboard() {
     const productions = dashboard?.productions_recentes || [];
     const achats = dashboard?.achats_recents || [];
     const types = dashboard?.mouvements_par_type || {};
+    const graphiques = dashboard?.graphiques || {};
+
+    const activiteMensuelle = graphiques.activite_mensuelle || [];
+    const produitsConsommes = graphiques.produits_consommes || [];
 
     return (
         <div className="dashboard-page">
@@ -154,6 +169,168 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
+
+            
+            <div className="dashboard-charts-grid">
+                <section className="dashboard-card">
+                    <div className="dashboard-section-heading">
+                        <div>
+                            <h2>Achats mensuels</h2>
+                            <p>Montant total des achats en DH · 12 mois</p>
+                        </div>
+                    </div>
+
+                    <div style={{ width: "100%", height: 300 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                                data={activiteMensuelle}
+                                margin={{
+                                    top: 10,
+                                    right: 10,
+                                    left: 5,
+                                    bottom: 5,
+                                }}
+                            >
+                                <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    vertical={false}
+                                />
+                                <XAxis
+                                    dataKey="mois"
+                                    tick={{ fontSize: 11 }}
+                                />
+                                <YAxis
+                                    tick={{ fontSize: 11 }}
+                                    tickFormatter={(v) =>
+                                        new Intl.NumberFormat("fr-FR", {
+                                            notation: "compact",
+                                            maximumFractionDigits: 1,
+                                        }).format(v)
+                                    }
+                                />
+                                <Tooltip
+                                    formatter={(v) => [
+                                        formatPrix(v),
+                                        "Achats",
+                                    ]}
+                                />
+                                <Bar
+                                    dataKey="achats"
+                                    name="Achats"
+                                    fill="#C0392B"
+                                    radius={[5, 5, 0, 0]}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </section>
+
+                <section className="dashboard-card">
+                    <div className="dashboard-section-heading">
+                        <div>
+                            <h2>Mouvements mensuels</h2>
+                            <p>Quantités entrées et sorties · 12 mois</p>
+                        </div>
+                    </div>
+
+                    <div style={{ width: "100%", height: 300 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                                data={activiteMensuelle}
+                                margin={{
+                                    top: 10,
+                                    right: 10,
+                                    left: 5,
+                                    bottom: 5,
+                                }}
+                            >
+                                <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    vertical={false}
+                                />
+                                <XAxis
+                                    dataKey="mois"
+                                    tick={{ fontSize: 11 }}
+                                />
+                                <YAxis tick={{ fontSize: 11 }} />
+                                <Tooltip
+                                    formatter={(v) => [
+                                        formatNombre(v),
+                                    ]}
+                                />
+                                <Legend />
+                                <Bar
+                                    dataKey="entrees"
+                                    name="Entrées"
+                                    fill="#279B69"
+                                    radius={[4, 4, 0, 0]}
+                                />
+                                <Bar
+                                    dataKey="sorties"
+                                    name="Sorties"
+                                    fill="#E67E22"
+                                    radius={[4, 4, 0, 0]}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </section>
+
+                <section className="dashboard-card">
+                    <div className="dashboard-section-heading">
+                        <div>
+                            <h2>Produits les plus consommés</h2>
+                            <p>Top 5 des produits sortis sur 12 mois</p>
+                        </div>
+                    </div>
+
+                    {produitsConsommes.length === 0 ? (
+                        <div className="dashboard-empty">
+                            Aucune sortie enregistrée sur cette période.
+                        </div>
+                    ) : (
+                        <div style={{ width: "100%", height: 300 }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart
+                                    data={produitsConsommes}
+                                    layout="vertical"
+                                    margin={{
+                                        top: 5,
+                                        right: 20,
+                                        left: 15,
+                                        bottom: 5,
+                                    }}
+                                >
+                                    <CartesianGrid
+                                        strokeDasharray="3 3"
+                                        horizontal={false}
+                                    />
+                                    <XAxis type="number" />
+                                    <YAxis
+                                        type="category"
+                                        dataKey="nom_prd"
+                                        width={120}
+                                        tick={{ fontSize: 11 }}
+                                    />
+                                    <Tooltip
+                                        formatter={(v) => [
+                                            formatNombre(v),
+                                            "Quantité sortie",
+                                        ]}
+                                    />
+                                    <Bar
+                                        dataKey="quantite"
+                                        name="Quantité sortie"
+                                        fill="#6478D3"
+                                        radius={[0, 5, 5, 0]}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
+                </section>
+            </div>
+
 
             <div className="dashboard-middle-grid">
                 <section className="dashboard-card">

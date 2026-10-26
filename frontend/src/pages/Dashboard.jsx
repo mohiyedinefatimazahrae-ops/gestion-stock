@@ -44,7 +44,10 @@ const statutProduction = {
     en_cours: "En cours",
 };
 
-export default function Dashboard() {
+export default function Dashboard({
+    onNavigate,
+    onSelectProduct,
+    }) {
     const [dashboard, setDashboard] = useState(null);
     const [chargement, setChargement] = useState(true);
     const [erreur, setErreur] = useState("");
@@ -362,9 +365,16 @@ export default function Dashboard() {
                                     {alertes.map((produit) => (
                                         <tr key={produit.id_prd}>
                                             <td>
-                                                <strong>
+                                                <button
+                                                    type="button"
+                                                    className="dashboard-product-link"
+                                                    onClick={() => {
+                                                        onSelectProduct(produit.id_prd);
+                                                        onNavigate("produits");
+                                                    }}
+                                                >
                                                     {produit.nom_prd}
-                                                </strong>
+                                                </button>
                                                 <small>
                                                     {produit.ref_prd || "Sans référence"}
                                                 </small>

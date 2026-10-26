@@ -2226,3 +2226,30 @@ textarea {
     }
 }
 
+
+.dashboard-product-link {
+    display: inline-block;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #C0392B;
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.dashboard-product-link:hover {
+    text-decoration: underline;
+}
+
+.produit-row-selected {
+    outline: 2px solid #C0392B;
+    outline-offset: -2px;
+    background-color: #fff2f0 !important;
+}
+
+.produit-row-selected td {
+    background-color: #fff2f0;
+}
+

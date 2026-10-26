@@ -12,7 +12,7 @@ import ProduitForm from "../components/ProduitForm";
 import ProduitTable from "../components/ProduitTable";
 import { useCallback, useEffect, useState } from "react";
 
-export default function Produits() {
+export default function Produits({ selectedProductId }) {
     const [produits, setProduits] = useState([]);
     const [categories, setCategories] = useState([]);
     const [unites, setUnites] = useState([]);
@@ -56,6 +56,23 @@ export default function Produits() {
 
         chargerDonnees();
     }, []);
+
+    useEffect(() => {
+        if (loading || !selectedProductId || produits.length === 0) {
+            return;
+        }
+
+        const element = document.getElementById(
+            `produit-row-${selectedProductId}`
+        );
+
+        if (element) {
+            element.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+        }
+    }, [loading, selectedProductId, produits]);
 
     async function enregistrerProduit(formData) {
         setErreur("");
@@ -171,6 +188,7 @@ export default function Produits() {
                         onEdit={modifierProduit}
                         onDelete={supprimerProduit}
                         deletingId={deletingId}
+                        selectedProductId={selectedProductId}
                     />
                 </>
             )}

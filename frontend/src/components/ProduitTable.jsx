@@ -6,6 +6,7 @@ export default function ProduitTable({
     onEdit,
     onDelete,
     deletingId,
+    selectedProductId,
 }) {
     if (produits.length === 0) {
         return (
@@ -39,7 +40,15 @@ export default function ProduitTable({
 
                     <tbody>
                         {produits.map((produit) => (
-                            <tr key={produit.id_prd}>
+                            <tr
+                                key={produit.id_prd}
+                                id={`produit-row-${produit.id_prd}`}
+                                className={
+                                    Number(selectedProductId) === Number(produit.id_prd)
+                                        ? "produit-row-selected"
+                                        : ""
+                                }
+                            >
                                 <td>
                                     {produit.img_prd ? (
                                         <img

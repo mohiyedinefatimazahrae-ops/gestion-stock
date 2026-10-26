@@ -11,6 +11,7 @@ import "./index.css";
 
 export default function App() {
     const [page, setPage] = useState("dashboard");
+    const [selectedProductId, setSelectedProductId] = useState(null);
 
     function changerPage(nouvellePage) {
         setPage(nouvellePage);
@@ -116,10 +117,17 @@ export default function App() {
                 </header>
 
                 <main className="content-area">
-                    {page === "dashboard" && <Dashboard />}
+                    {page === "dashboard" && (
+                        <Dashboard
+                            onNavigate={changerPage}
+                            onSelectProduct={setSelectedProductId}
+                        />
+                    )}
                     {page === "categories" && <Categories />}
                     {page === "unites" && <Unites />}
-                    {page === "produits" && <Produits />}
+                    {page === "produits" && (
+                        <Produits selectedProductId={selectedProductId} />
+                    )}
                     {page === "fournisseurs" && <Fournisseurs />}
                     {page === "achats" && <Achats />}
                     {page === "productions" && <Productions />}

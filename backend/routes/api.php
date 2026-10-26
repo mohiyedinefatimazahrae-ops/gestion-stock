@@ -7,6 +7,7 @@ use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\ProduitController;
 use App\Http\Controllers\UniteController;
 use App\Http\Controllers\AchatDetailController;
+use App\Http\Controllers\MouvementStockController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -20,11 +21,6 @@ Route::get('/test', function () {
         'success' => true
     ]);
 });
-
-Route::post('/productions/{id}/demarrer', [
-    ProductionController::class,
-    'demarrerProduction'
-]);
 
 Route::apiResource('categories', CategorieController::class);
 Route::apiResource('unites', UniteController::class);
@@ -62,3 +58,60 @@ Route::delete(
     'achats/{achatId}/details/{detailId}',
     [AchatDetailController::class, 'destroy']
 );
+
+
+Route::apiResource('productions', ProductionController::class);
+
+Route::get(
+    'productions/{id}/matieres',
+    [ProductionController::class, 'matieres']
+);
+
+Route::post(
+    'productions/{id}/matieres',
+    [ProductionController::class, 'ajouterMatiere']
+);
+
+Route::put(
+    'productions/{id}/matieres/{matiereId}',
+    [ProductionController::class, 'modifierMatiere']
+);
+
+Route::delete(
+    'productions/{id}/matieres/{matiereId}',
+    [ProductionController::class, 'supprimerMatiere']
+);
+
+Route::post(
+    'productions/{id}/demarrer',
+    [ProductionController::class, 'demarrerProduction']
+);
+
+Route::post(
+    'productions/{id}/terminer',
+    [ProductionController::class, 'terminerProduction']
+);
+
+Route::post(
+    'productions/{id}/livrer',
+    [ProductionController::class, 'livrerProduction']
+);
+
+
+
+Route::get('/mouvements-stock', [
+    MouvementStockController::class,
+    'index',
+]);
+
+Route::post(
+    '/mouvements-stock/ajustement',
+    [MouvementStockController::class, 'ajusterStock']
+);
+
+Route::get('/mouvements-stock/{id}', [
+    MouvementStockController::class,
+    'show',
+]);
+
+

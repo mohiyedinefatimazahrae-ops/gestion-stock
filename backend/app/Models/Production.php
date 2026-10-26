@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Production extends Model
 {
@@ -21,6 +22,8 @@ class Production extends Model
         'prix_reste',
         'statut',
         'notes',
+        'produit_fini_id',
+        'qte_produite',
     ];
 
     protected $casts = [
@@ -29,6 +32,7 @@ class Production extends Model
         'prix_total' => 'decimal:2',
         'prix_avance' => 'decimal:2',
         'prix_reste' => 'decimal:2',
+        'qte_produite' => 'decimal:3',
     ];
 
     // Une production contient plusieurs matières
@@ -48,6 +52,15 @@ class Production extends Model
             MouvementStock::class,
             'production_id',
             'id_production'
+        );
+    }
+
+    public function produitFini(): BelongsTo
+    {
+        return $this->belongsTo(
+            Produit::class,
+            'produit_fini_id',
+            'id_prd'
         );
     }
 }

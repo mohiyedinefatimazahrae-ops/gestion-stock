@@ -4,6 +4,8 @@ import Unites from "./pages/Unites";
 import Produits from "./pages/Produits";
 import Fournisseurs from "./pages/Fournisseurs";
 import Achats from "./pages/Achats";
+import Productions from "./pages/Productions";
+import MouvementsStock from "./pages/MouvementsStock";
 import "./index.css";
 
 export default function App() {
@@ -64,6 +66,21 @@ export default function App() {
                     >
                         Achats
                     </button>
+
+                    <button
+                        type="button"
+                        className={`nav-link ${page === "productions" ? "active" : ""}`}
+                        onClick={() => changerPage("productions")}
+                    >
+                        Productions
+                    </button>
+
+                    <button 
+                        type="button"
+                        className={`nav-link ${page === "mouvements" ? "active" : ""}`}
+                        onClick={() => changerPage("mouvements")}>
+                        Mouvements de stock
+                    </button>
                 </nav>
 
                 <div className="sidebar-footer">
@@ -95,6 +112,8 @@ export default function App() {
                     {page === "produits" && <Produits />}
                     {page === "fournisseurs" && <Fournisseurs />}
                     {page === "achats" && <Achats />}
+                    {page === "productions" && <Productions />}
+                    {page === "mouvements" && <MouvementsStock />}
                 </main>
             </div>
         </div>

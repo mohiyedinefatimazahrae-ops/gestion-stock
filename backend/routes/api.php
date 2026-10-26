@@ -9,6 +9,7 @@ use App\Http\Controllers\UniteController;
 use App\Http\Controllers\AchatDetailController;
 use App\Http\Controllers\MouvementStockController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationStockController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -116,4 +117,17 @@ Route::get('/mouvements-stock/{id}', [
     'show',
 ]);
 
+Route::get('/notifications-stock', [
+    NotificationStockController::class,
+    'index',
+]);
 
+Route::patch('/notifications-stock/{id}/lue', [
+    NotificationStockController::class,
+    'marquerCommeLue',
+]);
+
+Route::patch('/notifications-stock/tout-lire', [
+    NotificationStockController::class,
+    'toutMarquerCommeLu',
+]);

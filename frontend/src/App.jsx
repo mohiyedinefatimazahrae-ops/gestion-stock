@@ -7,6 +7,7 @@ import Achats from "./pages/Achats";
 import Productions from "./pages/Productions";
 import MouvementsStock from "./pages/MouvementsStock";
 import Dashboard from "./pages/Dashboard";
+import NotificationsStock from "./components/NotificationsStock";
 import "./index.css";
 
 export default function App() {
@@ -110,10 +111,21 @@ export default function App() {
                         </span>
                     </div>
 
-                    <div className="admin-badge">
-                        <span className="admin-avatar">A</span>
-                        <span>Administration</span>
+                    
+                    <div className="topbar-actions">
+                        <NotificationsStock
+                            onOpenProduct={(productId) => {
+                                setSelectedProductId(productId);
+                                changerPage("produits");
+                            }}
+                        />
+                    
+                        <div className="admin-badge">
+                            <span className="admin-avatar">A</span>
+                            <span>Administration</span>
+                        </div>
                     </div>
+
                 </header>
 
                 <main className="content-area">

@@ -67,12 +67,21 @@ class Produit extends Model
             'id_prd'
         );
     }
-    
+
     // Les productions qui utilisent ce produit comme matière
     public function productionMatieres(): HasMany
     {
         return $this->hasMany(
             ProductionMatiere::class,
+            'produit_id',
+            'id_prd'
+        );
+    }
+
+    public function notificationsStock(): HasMany
+    {
+        return $this->hasMany(
+            NotificationStock::class,
             'produit_id',
             'id_prd'
         );

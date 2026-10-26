@@ -8,6 +8,7 @@ use App\Http\Controllers\ProduitController;
 use App\Http\Controllers\UniteController;
 use App\Http\Controllers\AchatDetailController;
 use App\Http\Controllers\MouvementStockController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -22,6 +23,7 @@ Route::get('/test', function () {
     ]);
 });
 
+Route::get('/dashboard', [DashboardController::class, 'index']);
 Route::apiResource('categories', CategorieController::class);
 Route::apiResource('unites', UniteController::class);
 Route::apiResource('produits', ProduitController::class);

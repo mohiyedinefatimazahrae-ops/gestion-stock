@@ -6,10 +6,11 @@ import Fournisseurs from "./pages/Fournisseurs";
 import Achats from "./pages/Achats";
 import Productions from "./pages/Productions";
 import MouvementsStock from "./pages/MouvementsStock";
+import Dashboard from "./pages/Dashboard";
 import "./index.css";
 
 export default function App() {
-    const [page, setPage] = useState("categories");
+    const [page, setPage] = useState("dashboard");
 
     function changerPage(nouvellePage) {
         setPage(nouvellePage);
@@ -21,6 +22,14 @@ export default function App() {
                 <h2>StockManager</h2>
 
                 <nav>
+                    <button
+                        type="button"
+                        className={`nav-link ${page === "dashboard" ? "active" : ""}`}
+                        onClick={() => changerPage("dashboard")}
+                    >
+                        Dashboard
+                    </button>
+
                     <button
                         type="button"
                         className={`nav-link ${
@@ -107,6 +116,7 @@ export default function App() {
                 </header>
 
                 <main className="content-area">
+                    {page === "dashboard" && <Dashboard />}
                     {page === "categories" && <Categories />}
                     {page === "unites" && <Unites />}
                     {page === "produits" && <Produits />}

@@ -2462,4 +2462,17 @@ textarea {
         width: 370px;
     }
 }
+/* ggg */
+.produits-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+}
 
+@media (max-width: 700px) {
+    .produits-header-actions {
+        justify-content: flex-start;
+    }
+}

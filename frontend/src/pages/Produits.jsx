@@ -144,7 +144,7 @@ export default function Produits({ selectedProductId }) {
 
     return (
         <div className="page-content produits-page">
-            <div className="page-header">
+            {/* <div className="page-header">
                 <div>
                     <h1>Gestion des produits</h1>
                     <p>
@@ -156,7 +156,48 @@ export default function Produits({ selectedProductId }) {
                 <span className="category-count">
                     {produits.length} produit(s)
                 </span>
+            </div> */}
+            
+            <div className="page-header">
+                <div>
+                    <h1>Gestion des produits</h1>
+                    <p>
+                        Gérez les produits, les matières premières
+                        et les produits finis.
+                    </p>
+                </div>
+                        
+                <div className="produits-header-actions">
+                    <span className="category-count">
+                        {produits.length} produit(s)
+                    </span>
+                        
+                    <button
+                        type="button"
+                        onClick={() => {
+                            window.open(
+                                "http://127.0.0.1:8000/api/rapports/stock/pdf",
+                                "_blank"
+                            );
+                        }}
+                    >
+                        Exporter le stock PDF
+                    </button>
+                    
+                    <button
+                        type="button"
+                        onClick={() => {
+                            window.open(
+                                "http://127.0.0.1:8000/api/rapports/produits-a-acheter/pdf",
+                                "_blank"
+                            );
+                        }}
+                    >
+                        Produits à acheter PDF
+                    </button>
+                </div>
             </div>
+
                 {erreur && (
                 <div className="alert alert-error">
                     {erreur}

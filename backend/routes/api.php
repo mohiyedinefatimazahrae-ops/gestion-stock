@@ -10,6 +10,7 @@ use App\Http\Controllers\AchatDetailController;
 use App\Http\Controllers\MouvementStockController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationStockController;
+use App\Http\Controllers\RapportStockController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -130,4 +131,14 @@ Route::patch('/notifications-stock/{id}/lue', [
 Route::patch('/notifications-stock/tout-lire', [
     NotificationStockController::class,
     'toutMarquerCommeLu',
+]);
+
+Route::get('/rapports/stock/pdf', [
+    RapportStockController::class,
+    'stock',
+]);
+
+Route::get('/rapports/produits-a-acheter/pdf', [
+    RapportStockController::class,
+    'produitsAAcheter',
 ]);

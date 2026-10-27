@@ -17,17 +17,17 @@ class MouvementStockController extends Controller
             'achat',
             'production',
         ]);
-
+    
         // Filtrer par produit
         if ($request->filled('produit_id')) {
             $query->where('produit_id', $request->produit_id);
         }
-
-        // Filtrer par type de mouvement
+    
+        // Filtrer par type
         if ($request->filled('type')) {
             $query->where('type', $request->type);
         }
-
+    
         // Date de début
         if ($request->filled('date_debut')) {
             $query->whereDate(
@@ -36,7 +36,7 @@ class MouvementStockController extends Controller
                 $request->date_debut
             );
         }
-
+    
         // Date de fin
         if ($request->filled('date_fin')) {
             $query->whereDate(
@@ -45,12 +45,14 @@ class MouvementStockController extends Controller
                 $request->date_fin
             );
         }
-
+    
+        // Pagination : 10 mouvements par page
         $mouvements = $query
             ->orderByDesc('date_mouvement')
             ->orderByDesc('id_mouvement')
-            ->get();
-
+            ->paginate(10)
+            ->withQueryString();
+    
         return response()->json($mouvements);
     }
 
@@ -72,16 +74,16 @@ class MouvementStockController extends Controller
             'qte_stock' => 'required|numeric|min:0',
             'motif' => 'required|string|max:150',
         ]);
-    
+
         $mouvement = DB::transaction(function () use ($validated) {
             $produit = Produit::where(
                 'id_prd',
                 $validated['produit_id']
             )->lockForUpdate()->firstOrFail();
-    
+
             $qteAvant = (float) $produit->qte_stock;
             $qteApres = (float) $validated['qte_stock'];
-    
+
             if (abs($qteAvant - $qteApres) < 0.0005) {
                 throw ValidationException::withMessages([
                     'qte_stock' => [
@@ -89,14 +91,14 @@ class MouvementStockController extends Controller
                     ],
                 ]);
             }
-    
+
             // Calcul de la différence : positive ou négative
             $difference = round($qteApres - $qteAvant, 3);
-    
+
             // Mise à jour du stock réel
             $produit->qte_stock = $qteApres;
             $produit->save();
-    
+
             // Enregistrement de l'historique
             return MouvementStock::create([
                 'produit_id' => $produit->id_prd,
@@ -111,7 +113,7 @@ class MouvementStockController extends Controller
                 'date_mouvement' => now(),
             ]);
         });
-    
+
         return response()->json([
             'message' => 'Stock ajusté avec succès.',
             'mouvement' => $mouvement->load('produit'),

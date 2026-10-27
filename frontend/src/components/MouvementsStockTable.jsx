@@ -1,7 +1,8 @@
-
 export default function MouvementsStockTable({
     mouvements,
     loading,
+    pagination,
+    onPageChange,
 }) {
     function formaterDate(date) {
         if (!date) return "—";
@@ -50,91 +51,161 @@ export default function MouvementsStockTable({
         return types[type] || type || "—";
     }
 
+    const pageActuelle = pagination?.current_page || 1;
+    const dernierePage = pagination?.last_page || 1;
+
+    const debutPages = Math.max(
+        1,
+        Math.min(pageActuelle - 2, dernierePage - 4)
+    );
+
+    const finPages = Math.min(
+        dernierePage,
+        debutPages + 4
+    );
+
+    const pages = Array.from(
+        { length: finPages - debutPages + 1 },
+        (_, index) => debutPages + index
+    );
+
     return (
-        <div className="mouvements-table-wrapper">
-            <table className="mouvements-table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Référence</th>
-                        <th>Produit</th>
-                        <th>Type</th>
-                        <th>Quantité</th>
-                        <th>Stock avant</th>
-                        <th>Stock après</th>
-                        <th>Prix unitaire</th>
-                        <th>Motif</th>
-                        <th>Document lié</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {loading ? (
+        <>
+            <div className="mouvements-table-wrapper">
+                <table className="mouvements-table">
+                    <thead>
                         <tr>
-                            <td colSpan="10" className="mouvement-vide">
-                                Chargement...
-                            </td>
+                            <th>Date</th>
+                            <th>Référence</th>
+                            <th>Produit</th>
+                            <th>Type</th>
+                            <th>Quantité</th>
+                            <th>Stock avant</th>
+                            <th>Stock après</th>
+                            <th>Prix unitaire</th>
+                            <th>Motif</th>
+                            <th>Document lié</th>
                         </tr>
-                    ) : mouvements.length === 0 ? (
-                        <tr>
-                            <td colSpan="10" className="mouvement-vide">
-                                Aucun mouvement trouvé.
-                            </td>
-                        </tr>
-                    ) : (
-                        mouvements.map((mouvement) => (
-                            <tr key={mouvement.id_mouvement}>
-                                <td>
-                                    {formaterDate(
-                                        mouvement.date_mouvement
-                                    )}
-                                </td>
+                    </thead>
 
-                                <td>#{mouvement.id_mouvement}</td>
-
-                                <td>
-                                    <strong>
-                                        {mouvement.produit?.nom_prd ||
-                                            "Produit inconnu"}
-                                    </strong>
-
-                                    <small className="mouvement-reference">
-                                        {mouvement.produit?.ref_prd || ""}
-                                    </small>
-                                </td>
-
-                                <td>
-                                    <span
-                                        className={`mouvement-badge ${
-                                            mouvement.type || ""
-                                        }`}
-                                    >
-                                        {libelleType(mouvement.type)}
-                                    </span>
-                                </td>
-
-                                <td>{afficherNombre(mouvement.qte)}</td>
-                                <td>
-                                    {afficherNombre(mouvement.qte_avant)}
-                                </td>
-                                <td>
-                                    {afficherNombre(mouvement.qte_apres)}
-                                </td>
-                                <td>{afficherPrix(mouvement.pu)}</td>
-                                <td>{mouvement.motif || "—"}</td>
-
-                                <td>
-                                    {mouvement.achat_id
-                                        ? `Achat #${mouvement.achat_id}`
-                                        : mouvement.production_id
-                                          ? `Production #${mouvement.production_id}`
-                                          : "—"}
+                    <tbody>
+                        {loading ? (
+                            <tr>
+                                <td colSpan="10" className="mouvement-vide">
+                                    Chargement...
                                 </td>
                             </tr>
-                        ))
-                    )}
-                </tbody>
-            </table>
-        </div>
+                        ) : mouvements.length === 0 ? (
+                            <tr>
+                                <td colSpan="10" className="mouvement-vide">
+                                    Aucun mouvement trouvé.
+                                </td>
+                            </tr>
+                        ) : (
+                            mouvements.map((mouvement) => (
+                                <tr key={mouvement.id_mouvement}>
+                                    <td>
+                                        {formaterDate(
+                                            mouvement.date_mouvement
+                                        )}
+                                    </td>
+
+                                    <td>#{mouvement.id_mouvement}</td>
+
+                                    <td>
+                                        <strong>
+                                            {mouvement.produit?.nom_prd ||
+                                                "Produit inconnu"}
+                                        </strong>
+
+                                        <small className="mouvement-reference">
+                                            {mouvement.produit?.ref_prd || ""}
+                                        </small>
+                                    </td>
+
+                                    <td>
+                                        <span
+                                            className={`mouvement-badge ${
+                                                mouvement.type || ""
+                                            }`}
+                                        >
+                                            {libelleType(mouvement.type)}
+                                        </span>
+                                    </td>
+
+                                    <td>{afficherNombre(mouvement.qte)}</td>
+                                    <td>
+                                        {afficherNombre(mouvement.qte_avant)}
+                                    </td>
+                                    <td>
+                                        {afficherNombre(mouvement.qte_apres)}
+                                    </td>
+                                    <td>{afficherPrix(mouvement.pu)}</td>
+                                    <td>{mouvement.motif || "—"}</td>
+
+                                    <td>
+                                        {mouvement.achat_id
+                                            ? `Achat #${mouvement.achat_id}`
+                                            : mouvement.production_id
+                                              ? `Production #${mouvement.production_id}`
+                                              : "—"}
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {!loading && pagination && pagination.total > 0 && (
+                <div className="pagination-mouvements">
+                    <span className="pagination-info">
+                        Affichage de {pagination.from ?? 0} à{" "}
+                        {pagination.to ?? 0} sur {pagination.total} mouvements
+                    </span>
+
+                    <div className="pagination-boutons">
+                        <button
+                            type="button"
+                            className="pagination-btn"
+                            disabled={pageActuelle <= 1 || loading}
+                            onClick={() => onPageChange(pageActuelle - 1)}
+                        >
+                            Précédent
+                        </button>
+
+                        {pages.map((page) => (
+                            <button
+                                key={page}
+                                type="button"
+                                className={`pagination-btn ${
+                                    page === pageActuelle
+                                        ? "active"
+                                        : ""
+                                }`}
+                                disabled={loading}
+                                onClick={() => onPageChange(page)}
+                                aria-current={
+                                    page === pageActuelle ? "page" : undefined
+                                }
+                            >
+                                {page}
+                            </button>
+                        ))}
+
+                        <button
+                            type="button"
+                            className="pagination-btn"
+                            disabled={
+                                pageActuelle >= dernierePage || loading
+                            }
+                            onClick={() => onPageChange(pageActuelle + 1)}
+                        >
+                            Suivant
+                        </button>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }

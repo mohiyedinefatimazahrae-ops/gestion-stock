@@ -64,7 +64,20 @@ export default function AchatForm({
             setNumeroFacture("");
             setNumAchat("");
             setNotes("");
-            setLignes([emptyLine()]);
+            setLignes(
+                achat?.details?.length
+                    ? achat.details.map((detail) => ({
+                        id: detail.id,
+                        produit_id: String(detail.produit_id),
+                        qte: String(detail.qte),
+                        pu: String(detail.pu),
+                        remise: String(detail.remise ?? 0),
+                        tva_pourcentage: String(
+                            detail.tva_pourcentage ?? 0
+                        ),
+                    }))
+                    : [emptyLine()]
+            );
         }
     }, [achat]);
 
@@ -132,29 +145,24 @@ export default function AchatForm({
     async function handleSubmit(e) {
         e.preventDefault();
         setErreur("");
-
+        
         if (!fournisseurId) {
             setErreur("Choisis un fournisseur.");
             return;
         }
-
+    
         if (!numAchat.trim()) {
             setErreur("Saisis le numéro de l'achat.");
             return;
         }
-
-        if (!dateAchat) {
-            setErreur("Choisis la date d'achat.");
-            return;
-        }
-
+    
         if (lignes.length === 0) {
             setErreur("Ajoute au moins un produit.");
             return;
         }
-
+    
         const details = lignes.map((ligne) => ({
-            ...(ligne.id ? { id: ligne.id } : {}),
+            ...(ligne.id ? { id: Number(ligne.id) } : {}),
             produit_id: Number(ligne.produit_id),
             qte: Number(ligne.qte),
             pu: Number(ligne.pu),
@@ -163,7 +171,7 @@ export default function AchatForm({
                 ligne.tva_pourcentage || 0
             ),
         }));
-
+    
         const ligneInvalide = details.some(
             (ligne) =>
                 !ligne.produit_id ||
@@ -178,28 +186,33 @@ export default function AchatForm({
                 ligne.tva_pourcentage < 0 ||
                 ligne.tva_pourcentage > 100
         );
-
+    
         if (ligneInvalide) {
             setErreur(
                 "Vérifie les produits, quantités, prix, remises et TVA."
             );
             return;
         }
-
+    
         const header = new FormData();
-
+    
+        if (achat?.id_achat) {
+            header.append("id_achat", String(achat.id_achat));
+        }
+    
         header.append("num_achat", numAchat.trim());
         header.append("fournisseur_id", fournisseurId);
         header.append("date_achat", dateAchat);
         header.append("numero_facture", numeroFacture);
         header.append("notes", notes);
-
+        header.append("details", JSON.stringify(details));
+    
         if (facture) {
             header.append("img_facture", facture);
         }
-
+    
         try {
-            await onSubmit({ header, details });
+            await onSubmit({ header });
         } catch (error) {
             setErreur(
                 error.message || "Une erreur est survenue."

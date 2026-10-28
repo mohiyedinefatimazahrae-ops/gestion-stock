@@ -118,9 +118,14 @@ export function supprimerDetailAchat(achatId, detailId) {
     );
 
 }
-// hhhh
+
 export function getFactureDownloadUrl(id) {
     return `${API_URL}/${id}/facture/download`;
 }
 
-
+export function enregistrerAchatComplet(formData) {
+    return request(`${API_URL}/enregistrer-complet`, {
+        method: "POST",
+        body: formData,
+    });
+}

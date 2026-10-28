@@ -1,6 +1,3 @@
-// 
-
-
 import { useCallback, useEffect, useState } from "react";
 
 import AchatForm from "../components/AchatForm";
@@ -9,15 +6,11 @@ import AchatTable from "../components/AchatTable";
 import {
     getAchats,
     getAchat,
-    createAchat,
-    updateAchat,
     deleteAchat,
     validerAchat,
-    ajouterDetailAchat,
-    modifierDetailAchat,
-    supprimerDetailAchat,
     getFactureUrl,
     getFactureDownloadUrl,
+    enregistrerAchatComplet,
 } from "../api/achatsApi";
 
 import { getFournisseurs } from "../api/fournisseursApi";
@@ -111,89 +104,45 @@ export default function Achats() {
             setErreur("Aucun achat sélectionné.");
             return;
         }
-    
+
         window.location.href = getFactureDownloadUrl(
             selectedAchat.id_achat
         );
     }
 
 
-    async function handleSubmit({ header, details }) {
+    async function handleSubmit({ header }) {
         setSaving(true);
         setErreur("");
         setMessage("");
-    
+
+        const idAchat = header.get("id_achat");
+        const modification = Boolean(idAchat);
+
         try {
-            let achatId;
-        
-            if (selectedAchat && modeEdition) {
-                achatId = selectedAchat.id_achat;
-            
-                await updateAchat(achatId, header);
-            
-                const anciennesLignes = selectedAchat.details || [];
-                const idsEnvoyes = details
-                    .filter((detail) => detail.id)
-                    .map((detail) => String(detail.id));
-            
-                for (const detail of details) {
-                    const { id, ...donnees } = detail;
-                
-                    if (id) {
-                        await modifierDetailAchat(
-                            achatId,
-                            id,
-                            donnees
-                        );
-                    } else {
-                        await ajouterDetailAchat(
-                            achatId,
-                            donnees
-                        );
-                    }
-                }
+            const result = await enregistrerAchatComplet(header);
+            const achatEnregistre = result.data ?? result.achat;
 
-                for (const ancienne of anciennesLignes) {
-                    if (!idsEnvoyes.includes(String(ancienne.id))) {
-                        await supprimerDetailAchat(
-                            achatId,
-                            ancienne.id
-                        );
-                    }
-                }
-
-                setMessage("Achat modifié avec succès.");
-                setModeEdition(false);
-            } else {
-                const result = await createAchat(header);
-                const nouvelAchat =
-                    result.achat ?? result.data ?? result;
-
-                achatId = nouvelAchat.id_achat;
-
-                if (!achatId) {
-                    throw new Error(
-                        "L'identifiant de l'achat est introuvable."
-                    );
-                }
-
-                for (const detail of details) {
-                    const { id, ...donnees } = detail;
-                    await ajouterDetailAchat(achatId, donnees);
-                }
-
-                setAfficherFormulaire(false);
-                setMessage("Achat créé avec succès.");
-            }
+            const achatId =
+                achatEnregistre?.id_achat ?? idAchat;
 
             await chargerAchats();
-            await chargerDetails(achatId);
+
+            if (achatId) {
+                await chargerDetails(achatId);
+            }
+
+            setMessage(
+                modification
+                    ? "Achat et détails modifiés avec succès."
+                    : "Achat créé avec tous ses produits."
+            );
         } catch (error) {
             setErreur(
                 error.message || "Impossible d'enregistrer l'achat."
             );
-
             await chargerAchats().catch(() => {});
+            throw error;
         } finally {
             setSaving(false);
         }

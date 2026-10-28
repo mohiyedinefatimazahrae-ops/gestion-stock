@@ -98,7 +98,7 @@ class ProductionController extends Controller
             'client_tel' => 'nullable|string|max:30',
             'details_commande' => 'nullable|string',
             'date_commande' => 'sometimes|required|date',
-            'date_livraison' => 'nullable|date',
+            'date_livraison' => 'nullable|date|after_or_equal:date_commande',
             'prix_total' => 'sometimes|required|numeric|min:0',
             'prix_avance' => 'sometimes|required|numeric|min:0',
             'notes' => 'nullable|string',
@@ -427,23 +427,29 @@ class ProductionController extends Controller
         });
     }
 
+
     // 12. Livrer une production terminée
     public function livrerProduction(int $id)
-    {
-        $production = Production::findOrFail($id);
+        {
+            return DB::transaction(function () use ($id) {
+                $production = Production::where(
+                    'id_production',
+                    $id
+                )->lockForUpdate()->firstOrFail();
 
-        if ($production->statut !== 'terminee') {
-            throw ValidationException::withMessages([
-                'statut' => 'Termine la production avant de la livrer.',
-            ]);
+                if ($production->statut !== 'terminee') {
+                    throw ValidationException::withMessages([
+                        'statut' => 'Termine la production avant de la livrer.',
+                    ]);
+                }
+
+                $production->statut = 'livree';
+                $production->save();
+
+                return response()->json([
+                    'message' => 'Production marquée comme livrée.',
+                    'production' => $production->fresh()->load('produitFini'),
+                ]);
+            });
         }
-
-        $production->statut = 'livree';
-        $production->save();
-
-        return response()->json([
-            'message' => 'Production marquée comme livrée.',
-            'production' => $production->fresh()->load('produitFini'),
-        ]);
-    }
 }

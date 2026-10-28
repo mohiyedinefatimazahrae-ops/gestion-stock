@@ -31,6 +31,11 @@ Route::apiResource('unites', UniteController::class);
 Route::apiResource('produits', ProduitController::class);
 Route::apiResource('fournisseurs', FournisseurController::class);
 
+Route::post(
+    'achats/enregistrer-complet',
+    [AchatController::class, 'enregistrerComplet']
+);
+
 Route::apiResource('achats', AchatController::class)
     ->except(['update']);
 

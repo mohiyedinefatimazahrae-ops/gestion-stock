@@ -142,3 +142,8 @@ Route::get('/rapports/produits-a-acheter/pdf', [
     RapportStockController::class,
     'produitsAAcheter',
 ]);
+
+Route::get(
+    'achats/{id}/facture/download',
+    [AchatController::class, 'telechargerFacture']
+);

@@ -1,3 +1,5 @@
+// 
+
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -8,10 +10,14 @@ import {
     getAchats,
     getAchat,
     createAchat,
+    updateAchat,
     deleteAchat,
     validerAchat,
     ajouterDetailAchat,
+    modifierDetailAchat,
     supprimerDetailAchat,
+    getFactureUrl,
+    getFactureDownloadUrl,
 } from "../api/achatsApi";
 
 import { getFournisseurs } from "../api/fournisseursApi";
@@ -27,10 +33,15 @@ export default function Achats() {
     const [achats, setAchats] = useState([]);
     const [fournisseurs, setFournisseurs] = useState([]);
     const [produits, setProduits] = useState([]);
+
     const [selectedAchat, setSelectedAchat] = useState(null);
+    const [afficherFormulaire, setAfficherFormulaire] = useState(false);
+    const [modeEdition, setModeEdition] = useState(false);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [telechargement, setTelechargement] = useState(false);
+
     const [erreur, setErreur] = useState("");
     const [message, setMessage] = useState("");
 
@@ -44,6 +55,7 @@ export default function Achats() {
         const achat = result.achat ?? result.data ?? result;
 
         setSelectedAchat(achat);
+        return achat;
     }, []);
 
     useEffect(() => {
@@ -52,12 +64,15 @@ export default function Achats() {
             setErreur("");
 
             try {
-                const [achatsResult, fournisseursResult, produitsResult] =
-                    await Promise.all([
-                        getAchats(),
-                        getFournisseurs(),
-                        getProduits(),
-                    ]);
+                const [
+                    achatsResult,
+                    fournisseursResult,
+                    produitsResult,
+                ] = await Promise.all([
+                    getAchats(),
+                    getFournisseurs(),
+                    getProduits(),
+                ]);
 
                 setAchats(getList(achatsResult));
                 setFournisseurs(getList(fournisseursResult));
@@ -72,65 +87,115 @@ export default function Achats() {
         initialiser();
     }, []);
 
-    async function actualiser() {
-        await chargerAchats();
-
-        if (selectedAchat?.id_achat) {
-            await chargerDetails(selectedAchat.id_achat);
-        }
-    }
-
-    async function handleSubmit({ header, details }) {
-        setSaving(true);
+    function fermerModal() {
+        setSelectedAchat(null);
+        setModeEdition(false);
         setErreur("");
-        setMessage("");
-
-        try {
-            let achatId = selectedAchat?.id_achat;
-
-            // Créer d'abord l'achat en brouillon.
-            if (!achatId) {
-                const result = await createAchat(header);
-                const nouvelAchat = result.achat ?? result.data ?? result;
-
-                achatId = nouvelAchat.id_achat;
-
-                if (!achatId) {
-                    throw new Error(
-                        "L'achat a été créé, mais son identifiant est introuvable. Vérifie la réponse de AchatController."
-                    );
-                }
-            }
-
-            // Enregistrer les lignes une par une.
-            for (const detail of details) {
-                await ajouterDetailAchat(achatId, detail);
-            }
-
-            await chargerAchats();
-            await chargerDetails(achatId);
-
-            setMessage(
-                selectedAchat
-                    ? "Produits ajoutés à l'achat."
-                    : "Achat créé et produits enregistrés."
-            );
-        } catch (error) {
-            setErreur(error.message || "Impossible d'enregistrer l'achat.");
-            await chargerAchats().catch(() => {});
-        } finally {
-            setSaving(false);
-        }
     }
 
     async function handleDetails(achat) {
         setErreur("");
         setMessage("");
+        setModeEdition(false);
 
         try {
             await chargerDetails(achat.id_achat);
         } catch (error) {
             setErreur(error.message || "Impossible de charger les détails.");
+        }
+    }
+
+    
+    function telechargerFacture() {
+        if (!selectedAchat?.id_achat) {
+            setErreur("Aucun achat sélectionné.");
+            return;
+        }
+    
+        window.location.href = getFactureDownloadUrl(
+            selectedAchat.id_achat
+        );
+    }
+
+
+    async function handleSubmit({ header, details }) {
+        setSaving(true);
+        setErreur("");
+        setMessage("");
+    
+        try {
+            let achatId;
+        
+            if (selectedAchat && modeEdition) {
+                achatId = selectedAchat.id_achat;
+            
+                await updateAchat(achatId, header);
+            
+                const anciennesLignes = selectedAchat.details || [];
+                const idsEnvoyes = details
+                    .filter((detail) => detail.id)
+                    .map((detail) => String(detail.id));
+            
+                for (const detail of details) {
+                    const { id, ...donnees } = detail;
+                
+                    if (id) {
+                        await modifierDetailAchat(
+                            achatId,
+                            id,
+                            donnees
+                        );
+                    } else {
+                        await ajouterDetailAchat(
+                            achatId,
+                            donnees
+                        );
+                    }
+                }
+
+                for (const ancienne of anciennesLignes) {
+                    if (!idsEnvoyes.includes(String(ancienne.id))) {
+                        await supprimerDetailAchat(
+                            achatId,
+                            ancienne.id
+                        );
+                    }
+                }
+
+                setMessage("Achat modifié avec succès.");
+                setModeEdition(false);
+            } else {
+                const result = await createAchat(header);
+                const nouvelAchat =
+                    result.achat ?? result.data ?? result;
+
+                achatId = nouvelAchat.id_achat;
+
+                if (!achatId) {
+                    throw new Error(
+                        "L'identifiant de l'achat est introuvable."
+                    );
+                }
+
+                for (const detail of details) {
+                    const { id, ...donnees } = detail;
+                    await ajouterDetailAchat(achatId, donnees);
+                }
+
+                setAfficherFormulaire(false);
+                setMessage("Achat créé avec succès.");
+            }
+
+            await chargerAchats();
+            await chargerDetails(achatId);
+        } catch (error) {
+            setErreur(
+                error.message || "Impossible d'enregistrer l'achat."
+            );
+
+            await chargerAchats().catch(() => {});
+        } finally {
+            setSaving(false);
         }
     }
 
@@ -150,11 +215,14 @@ export default function Achats() {
 
             if (selectedAchat?.id_achat === achat.id_achat) {
                 await chargerDetails(achat.id_achat);
+                setModeEdition(false);
             }
 
             setMessage("Achat validé et stock mis à jour.");
         } catch (error) {
-            setErreur(error.message || "Impossible de valider cet achat.");
+            setErreur(
+                error.message || "Impossible de valider cet achat."
+            );
         }
     }
 
@@ -173,46 +241,45 @@ export default function Achats() {
             await chargerAchats();
 
             if (selectedAchat?.id_achat === achat.id_achat) {
-                setSelectedAchat(null);
+                fermerModal();
             }
 
             setMessage("Achat supprimé.");
         } catch (error) {
-            setErreur(error.message || "Impossible de supprimer cet achat.");
-        }
-    }
-
-    async function handleDeleteDetail(detail) {
-        if (!selectedAchat) return;
-
-        if (!window.confirm("Supprimer cette ligne d'achat ?")) return;
-
-        setErreur("");
-        setMessage("");
-
-        try {
-            await supprimerDetailAchat(
-                selectedAchat.id_achat,
-                detail.id
+            setErreur(
+                error.message || "Impossible de supprimer cet achat."
             );
-
-            await chargerDetails(selectedAchat.id_achat);
-            await chargerAchats();
-
-            setMessage("Ligne supprimée.");
-        } catch (error) {
-            setErreur(error.message || "Impossible de supprimer cette ligne.");
         }
     }
+
+    const factureUrl = selectedAchat?.img_facture
+        ? getFactureUrl(selectedAchat.img_facture)
+        : null;
 
     return (
         <div className="achats-page">
-            <h1>Gestion des achats</h1>
+            <div className="achats-header">
+                <div>
+                    <h1>Gestion des achats</h1>
+                    <p>
+                        Gère les achats fournisseurs et les entrées de stock.
+                    </p>
+                </div>
 
-            <p>
-                Crée tes achats, ajoute les produits et valide-les pour
-                mettre à jour le stock.
-            </p>
+                <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => {
+                        setAfficherFormulaire((ancien) => !ancien);
+                        setErreur("");
+                        setMessage("");
+                    }}
+                >
+                    {afficherFormulaire
+                        ? "Fermer le formulaire"
+                        : "+ Nouvel achat"}
+                </button>
+            </div>
 
             {erreur && (
                 <div className="alert alert-error" role="alert">
@@ -226,134 +293,323 @@ export default function Achats() {
                 </div>
             )}
 
-            {!selectedAchat && (
-                <AchatForm
-                    fournisseurs={fournisseurs}
-                    produits={produits}
-                    onSubmit={handleSubmit}
-                    loading={saving}
-                />
+            {afficherFormulaire && (
+                <section className="achat-create-card">
+                    <AchatForm
+                        fournisseurs={fournisseurs}
+                        produits={produits}
+                        onSubmit={handleSubmit}
+                        onCancel={() => setAfficherFormulaire(false)}
+                        loading={saving}
+                    />
+                </section>
             )}
 
-            <hr />
+            <section className="achats-list-section">
+                <div className="achats-section-heading">
+                    <div>
+                        <h2>Liste des achats</h2>
+                        <p>{achats.length} achat(s) enregistré(s)</p>
+                    </div>
 
-            <h2>Liste des achats</h2>
+                    <button
+                        type="button"
+                        className="btn-secondary"
+                        disabled={loading}
+                        onClick={async () => {
+                            try {
+                                setLoading(true);
+                                await chargerAchats();
+                            } catch (error) {
+                                setErreur(
+                                    error.message || "Erreur d'actualisation."
+                                );
+                            } finally {
+                                setLoading(false);
+                            }
+                        }}
+                    >
+                        Actualiser
+                    </button>
+                </div>
 
-            <AchatTable
-                achats={achats}
-                loading={loading}
-                onDetails={handleDetails}
-                onValider={handleValider}
-                onDelete={handleDelete}
-            />
+                <AchatTable
+                    achats={achats}
+                    loading={loading}
+                    onDetails={handleDetails}
+                    onValider={handleValider}
+                    onDelete={handleDelete}
+                />
+            </section>
 
             {selectedAchat && (
-                <section className="achat-details-section">
-                    <div className="section-heading">
-                        <h2>
-                            Détails de {selectedAchat.num_achat}
-                        </h2>
+                <div
+                    className="achat-modal-backdrop"
+                    onClick={fermerModal}
+                >
+                    <section
+                        className="achat-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="achat-modal-title"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <header className="achat-modal-header">
+                            <div>
+                                <span className="achat-modal-eyebrow">
+                                    Dossier d'achat
+                                </span>
 
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setSelectedAchat(null);
-                                setErreur("");
-                                setMessage("");
-                            }}
-                        >
-                            Fermer les détails
-                        </button>
-                    </div>
+                                <h2 id="achat-modal-title">
+                                    {selectedAchat.num_achat}
+                                </h2>
 
-                    <p>
-                        Fournisseur :{" "}
-                        {selectedAchat.fournisseur?.nom_frn || "—"}
-                    </p>
+                                <span
+                                    className={`status status-${selectedAchat.statut}`}
+                                >
+                                    {selectedAchat.statut === "brouillon"
+                                        ? "Brouillon"
+                                        : selectedAchat.statut === "valide"
+                                          ? "Validé"
+                                          : selectedAchat.statut}
+                                </span>
+                            </div>
 
-                    <p>
-                        Statut : <strong>{selectedAchat.statut}</strong>
-                    </p>
+                            <button
+                                type="button"
+                                className="achat-modal-close"
+                                aria-label="Fermer les détails"
+                                onClick={fermerModal}
+                            >
+                                ×
+                            </button>
+                        </header>
 
-                    {selectedAchat.statut === "brouillon" && (
-                        <AchatForm
-                            key={selectedAchat.id_achat}
-                            achat={selectedAchat}
-                            fournisseurs={fournisseurs}
-                            produits={produits}
-                            onSubmit={handleSubmit}
-                            onCancel={() => setSelectedAchat(null)}
-                            loading={saving}
-                        />
-                    )}
+                        {erreur && (
+                            <div className="alert alert-error" role="alert">
+                                {erreur}
+                            </div>
+                        )}
 
-                    <h3>Produits enregistrés</h3>
+                        <div className="achat-modal-body">
+                            {!modeEdition ? (
+                                <>
+                                    <div className="achat-info-grid">
+                                        <div>
+                                            <span>Fournisseur</span>
+                                            <strong>
+                                                {selectedAchat.fournisseur?.nom_frn ||
+                                                    "—"}
+                                            </strong>
+                                        </div>
 
-                    {!selectedAchat.details?.length ? (
-                        <p>Aucun produit dans cet achat.</p>
-                    ) : (
-                        <div className="table-container">
-                            <table className="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Produit</th>
-                                        <th>Quantité</th>
-                                        <th>Prix unitaire</th>
-                                        <th>Remise (%)</th>
-                                        <th>TVA (%)</th>
-                                        <th>Sous-total HT</th>
-                                        {selectedAchat.statut === "brouillon" && (
-                                            <th>Action</th>
+                                        <div>
+                                            <span>Date d'achat</span>
+                                            <strong>
+                                                {String(
+                                                    selectedAchat.date_achat || ""
+                                                ).slice(0, 10) || "—"}
+                                            </strong>
+                                        </div>
+
+                                        <div>
+                                            <span>N° facture</span>
+                                            <strong>
+                                                {selectedAchat.numero_facture ||
+                                                    "—"}
+                                            </strong>
+                                        </div>
+
+                                        <div>
+                                            <span>Statut</span>
+                                            <strong>
+                                                {selectedAchat.statut}
+                                            </strong>
+                                        </div>
+                                    </div>
+
+                                    {selectedAchat.notes && (
+                                        <div className="achat-notes">
+                                            <strong>Notes</strong>
+                                            <p>{selectedAchat.notes}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="achat-modal-section">
+                                        <h3>Produits de l'achat</h3>
+
+                                        {!selectedAchat.details?.length ? (
+                                            <p>
+                                                Aucun produit dans cet achat.
+                                            </p>
+                                        ) : (
+                                            <div className="table-container">
+                                                <table className="data-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Produit</th>
+                                                            <th>Quantité</th>
+                                                            <th>Prix unitaire</th>
+                                                            <th>Remise</th>
+                                                            <th>TVA</th>
+                                                            <th>Sous-total HT</th>
+                                                        </tr>
+                                                    </thead>
+
+                                                    <tbody>
+                                                        {selectedAchat.details.map(
+                                                            (detail) => (
+                                                                <tr key={detail.id}>
+                                                                    <td>
+                                                                        {detail.produit?.nom_prd ||
+                                                                            "—"}
+                                                                    </td>
+                                                                    <td>{detail.qte}</td>
+                                                                    <td>
+                                                                        {Number(
+                                                                            detail.pu || 0
+                                                                        ).toFixed(2)}{" "}
+                                                                        DH
+                                                                    </td>
+                                                                    <td>
+                                                                        {detail.remise}%
+                                                                    </td>
+                                                                    <td>
+                                                                        {detail.tva_pourcentage}%
+                                                                    </td>
+                                                                    <td>
+                                                                        {Number(
+                                                                            detail.sous_total || 0
+                                                                        ).toFixed(2)}{" "}
+                                                                        DH
+                                                                    </td>
+                                                                </tr>
+                                                            )
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         )}
-                                    </tr>
-                                </thead>
+                                    </div>
 
-                                <tbody>
-                                    {selectedAchat.details.map((detail) => (
-                                        <tr key={detail.id}>
-                                            <td>
-                                                {detail.produit?.nom_prd || "—"}
-                                            </td>
-                                            <td>{detail.qte}</td>
-                                            <td>{detail.pu} DH</td>
-                                            <td>{detail.remise}%</td>
-                                            <td>{detail.tva_pourcentage}%</td>
-                                            <td>{detail.sous_total} DH</td>
+                                    <div className="achat-modal-totals">
+                                        <p>
+                                            Total HT
+                                            <strong>
+                                                {Number(
+                                                    selectedAchat.total_ht || 0
+                                                ).toFixed(2)}{" "}
+                                                DH
+                                            </strong>
+                                        </p>
 
-                                            {selectedAchat.statut === "brouillon" && (
-                                                <td>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            handleDeleteDetail(detail)
-                                                        }
-                                                    >
-                                                        Supprimer
-                                                    </button>
-                                                </td>
-                                            )}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                        <p>
+                                            TVA
+                                            <strong>
+                                                {Number(
+                                                    selectedAchat.tva || 0
+                                                ).toFixed(2)}{" "}
+                                                DH
+                                            </strong>
+                                        </p>
+
+                                        <p className="achat-total-ttc">
+                                            Total TTC
+                                            <strong>
+                                                {Number(
+                                                    selectedAchat.total_ttc || 0
+                                                ).toFixed(2)}{" "}
+                                                DH
+                                            </strong>
+                                        </p>
+                                    </div>
+
+                                    <div className="achat-facture-section">
+                                        <h3>Facture fournisseur</h3>
+
+                                        {factureUrl ? (
+                                            <>
+                                                <a
+                                                    href={factureUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="achat-facture-preview-link"
+                                                >
+                                                    <img
+                                                        src={factureUrl}
+                                                        alt="Facture de l'achat"
+                                                        className="achat-facture-preview"
+                                                    />
+                                                </a>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={telechargerFacture}
+                                                    disabled={telechargement}
+                                                    className="btn-secondary"
+                                                >
+                                                    {telechargement
+                                                        ? "Téléchargement..."
+                                                        : "Télécharger la facture"}
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <p>
+                                                Aucune image de facture enregistrée.
+                                            </p>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <AchatForm
+                                    key={`${selectedAchat.id_achat}-${selectedAchat.details?.length ?? 0}`}
+                                    achat={selectedAchat}
+                                    fournisseurs={fournisseurs}
+                                    produits={produits}
+                                    onSubmit={handleSubmit}
+                                    onCancel={() => setModeEdition(false)}
+                                    loading={saving}
+                                />
+                            )}
                         </div>
-                    )}
 
-                    <div className="achat-totals">
-                        <p>
-                            Total HT :{" "}
-                            <strong>{Number(selectedAchat.total_ht || 0).toFixed(2)} DH</strong>
-                        </p>
-                        <p>
-                            TVA :{" "}
-                            <strong>{Number(selectedAchat.tva || 0).toFixed(2)} DH</strong>
-                        </p>
-                        <p>
-                            Total TTC :{" "}
-                            <strong>{Number(selectedAchat.total_ttc || 0).toFixed(2)} DH</strong>
-                        </p>
-                    </div>
-                </section>
+                        <footer className="achat-modal-footer">
+                            {!modeEdition &&
+                                selectedAchat.statut === "brouillon" && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="btn-secondary"
+                                            onClick={() =>
+                                                setModeEdition(true)
+                                            }
+                                        >
+                                            Modifier l'achat
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className="btn-primary"
+                                            disabled={saving}
+                                            onClick={() =>
+                                                handleValider(selectedAchat)
+                                            }
+                                        >
+                                            Valider l'achat
+                                        </button>
+                                    </>
+                                )}
+
+                            <button
+                                type="button"
+                                className="btn-secondary"
+                                onClick={fermerModal}
+                            >
+                                Fermer
+                            </button>
+                        </footer>
+                    </section>
+                </div>
             )}
         </div>
     );

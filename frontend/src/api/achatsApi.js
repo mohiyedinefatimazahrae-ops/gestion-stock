@@ -116,4 +116,11 @@ export function supprimerDetailAchat(achatId, detailId) {
             method: "DELETE",
         }
     );
+
 }
+// hhhh
+export function getFactureDownloadUrl(id) {
+    return `${API_URL}/${id}/facture/download`;
+}
+
+

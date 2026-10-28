@@ -7,6 +7,7 @@ use App\Models\MouvementStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+// use Illuminate\Support\Facades\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -233,5 +234,34 @@ class AchatController extends Controller
         return response()->json([
             'message' => 'Achat supprimé avec succès.',
         ]);
+    }
+
+    public function telechargerFacture(int $id)
+    {
+        $achat = Achat::findOrFail($id);
+
+        if (!$achat->img_facture) {
+            return response()->json([
+                'message' => 'Aucune facture disponible.',
+            ], 404);
+        }
+
+        $chemin = $achat->img_facture;
+
+        if (!Storage::disk('public')->exists($chemin)) {
+            return response()->json([
+                'message' => 'Le fichier de facture est introuvable.',
+            ], 404);
+        }
+
+        $nomFichier = 'facture-achat-' . $achat->id_achat
+            . '.' . pathinfo($chemin, PATHINFO_EXTENSION);
+
+        $cheminComplet = Storage::disk('public')->path($chemin);
+
+        return response()->download(
+            $cheminComplet,
+            $nomFichier
+        );
     }
 }

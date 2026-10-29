@@ -34,7 +34,12 @@ class ProduitController extends Controller
             'unite_id' => 'required|exists:unites,id_unt',
             'type' => 'required|in:matiere_premiere,produit_fini',
             'marque' => 'nullable|string|max:100',
-            'code_barres' => 'nullable|string|max:100',
+            'code_barres' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::unique('produits', 'code_barres'),
+            ],
             'qte_stock' => 'required|numeric|min:0',
             'qte_min' => 'required|numeric|min:0',
             'prix_achat' => 'required|numeric|min:0',
@@ -86,7 +91,13 @@ class ProduitController extends Controller
             'unite_id' => 'required|exists:unites,id_unt',
             'type' => 'required|in:matiere_premiere,produit_fini',
             'marque' => 'nullable|string|max:100',
-            'code_barres' => 'nullable|string|max:100',
+            'code_barres' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::unique('produits', 'code_barres')
+                    ->ignore($produit->id_prd, 'id_prd'),
+            ],
             'qte_stock' => 'required|numeric|min:0',
             'qte_min' => 'required|numeric|min:0',
             'prix_achat' => 'required|numeric|min:0',
@@ -143,4 +154,32 @@ class ProduitController extends Controller
             'message' => 'Produit supprimé avec succès.',
         ]);
     }
+
+    // Rechercher un produit par code-barres
+    public function chercherParCodeBarres(Request $request)
+        {
+            $validated = $request->validate([
+                'code_barres' => 'required|string|max:100',
+            ]);
+        
+            $produit = Produit::with(['categorie', 'unite'])
+                ->where('code_barres', $validated['code_barres'])
+                ->first();
+        
+            if (!$produit) {
+                return response()->json([
+                    'message' => 'Aucun produit trouvé avec ce code-barres.',
+                ], 404);
+            }
+        
+            if (!$produit->actif) {
+                return response()->json([
+                    'message' => 'Ce produit est désactivé.',
+                ], 422);
+            }
+        
+            return response()->json([
+                'produit' => $produit,
+            ]);
+        }
 }

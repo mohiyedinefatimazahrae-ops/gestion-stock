@@ -28,6 +28,12 @@ Route::get('/test', function () {
 Route::get('/dashboard', [DashboardController::class, 'index']);
 Route::apiResource('categories', CategorieController::class);
 Route::apiResource('unites', UniteController::class);
+
+Route::get(
+    '/produits/recherche-code-barres',
+    [ProduitController::class, 'chercherParCodeBarres']
+);
+
 Route::apiResource('produits', ProduitController::class);
 Route::apiResource('fournisseurs', FournisseurController::class);
 
@@ -152,3 +158,11 @@ Route::get(
     'achats/{id}/facture/download',
     [AchatController::class, 'telechargerFacture']
 );
+
+// route pour le scanner de code barre
+
+Route::post(
+    '/mouvements-stock/enregistrer',
+    [MouvementStockController::class, 'enregistrerMouvement']
+);
+

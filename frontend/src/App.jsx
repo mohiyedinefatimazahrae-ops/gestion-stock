@@ -8,6 +8,7 @@ import Productions from "./pages/Productions";
 import MouvementsStock from "./pages/MouvementsStock";
 import Dashboard from "./pages/Dashboard";
 import NotificationsStock from "./components/NotificationsStock";
+import ScannerStock from "./pages/ScannerStock";
 import "./index.css";
 
 export default function App() {
@@ -92,6 +93,14 @@ export default function App() {
                         onClick={() => changerPage("mouvements")}>
                         Mouvements de stock
                     </button>
+
+                    <button
+                        type="button"
+                        className={`nav-link ${page === "scanner" ? "active" : ""}`}
+                        onClick={() => changerPage("scanner")}
+                    >
+                        Scanner des produits
+                    </button>
                 </nav>
 
                 <div className="sidebar-footer">
@@ -144,6 +153,7 @@ export default function App() {
                     {page === "achats" && <Achats />}
                     {page === "productions" && <Productions />}
                     {page === "mouvements" && <MouvementsStock />}
+                    {page === "scanner" && <ScannerStock />}
                 </main>
             </div>
         </div>

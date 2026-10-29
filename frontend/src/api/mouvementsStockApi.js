@@ -48,3 +48,11 @@ export function ajusterStock(donnees) {
         body: JSON.stringify(donnees),
     });
 }
+
+// fonction de scanner code barre 
+export function enregistrerMouvement(donnees) {
+    return request(`${API_URL}/enregistrer`, {
+        method: "POST",
+        body: JSON.stringify(donnees),
+    });
+}

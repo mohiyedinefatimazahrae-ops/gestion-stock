@@ -17,17 +17,17 @@ class MouvementStockController extends Controller
             'achat',
             'production',
         ]);
-    
+
         // Filtrer par produit
         if ($request->filled('produit_id')) {
             $query->where('produit_id', $request->produit_id);
         }
-    
+
         // Filtrer par type
         if ($request->filled('type')) {
             $query->where('type', $request->type);
         }
-    
+
         // Date de début
         if ($request->filled('date_debut')) {
             $query->whereDate(
@@ -36,7 +36,7 @@ class MouvementStockController extends Controller
                 $request->date_debut
             );
         }
-    
+
         // Date de fin
         if ($request->filled('date_fin')) {
             $query->whereDate(
@@ -45,14 +45,14 @@ class MouvementStockController extends Controller
                 $request->date_fin
             );
         }
-    
+
         // Pagination : 10 mouvements par page
         $mouvements = $query
             ->orderByDesc('date_mouvement')
             ->orderByDesc('id_mouvement')
             ->paginate(10)
             ->withQueryString();
-    
+
         return response()->json($mouvements);
     }
 
@@ -119,6 +119,80 @@ class MouvementStockController extends Controller
             'mouvement' => $mouvement->load('produit'),
         ], 201);
     }
+    // foction pour le scanner de code barre
+
+    public function enregistrerMouvement(Request $request)
+        {
+            $validated = $request->validate([
+                'code_barres' => 'required|string',
+                'type' => 'required|in:entree,sortie',
+                'qte' => 'required|numeric|gt:0',
+                'motif' => 'nullable|string|max:150',
+            ]);
+    
+            $resultat = DB::transaction(function () use ($validated) {
+                $produit = Produit::where(
+                    'code_barres',
+                    $validated['code_barres']
+                )->lockForUpdate()->first();
+    
+                if (!$produit) {
+                    throw ValidationException::withMessages([
+                        'code_barres' => [
+                            'Aucun produit trouvé avec ce code-barres.'
+                        ],
+                    ]);
+                }
+    
+                $avant = (float) $produit->qte_stock;
+                $qte = (float) $validated['qte'];
+    
+                if (
+                    $validated['type'] === 'sortie'
+                    && $qte > $avant
+                ) {
+                    throw ValidationException::withMessages([
+                        'qte' => [
+                            "Stock insuffisant. Quantité disponible : {$avant}"
+                        ],
+                    ]);
+                }
+    
+                $apres = $validated['type'] === 'entree'
+                    ? $avant + $qte
+                    : $avant - $qte;
+    
+                $apres = round($apres, 3);
+    
+                $produit->qte_stock = $apres;
+                $produit->save();
+    
+                $mouvement = MouvementStock::create([
+                    'produit_id' => $produit->id_prd,
+                    'production_id' => null,
+                    'achat_id' => null,
+                    'type' => $validated['type'],
+                    'qte' => $qte,
+                    'qte_avant' => $avant,
+                    'qte_apres' => $apres,
+                    'pu' => $produit->prix_achat,
+                    'motif' => $validated['motif'] ?? null,
+                    'date_mouvement' => now(),
+                ]);
+    
+                return [
+                    'produit' => $produit->fresh(),
+                    'mouvement' => $mouvement,
+                ];
+            });
+    
+            return response()->json([
+                'message' => 'Mouvement enregistré avec succès.',
+                'produit' => $resultat['produit'],
+                'mouvement' => $resultat['mouvement'],
+            ], 201);
+        }
+
 }
 
 

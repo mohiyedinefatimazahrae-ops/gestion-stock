@@ -51,3 +51,13 @@ export function deleteProduit(id) {
         method: "DELETE",
     });
 }
+
+
+export function chercherProduitParCodeBarres(codeBarres) {
+    const code = encodeURIComponent(codeBarres.trim());
+
+    return request(
+        `${API_URL}/recherche-code-barres?code_barres=${code}`
+    );
+}
+

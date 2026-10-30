@@ -3,11 +3,11 @@ const API_URL = "http://127.0.0.1:8000/api/achats";
 
 async function request(url, options = {}) {
     const response = await fetch(url, {
+        ...options,
         headers: {
             Accept: "application/json",
             ...options.headers,
         },
-        ...options,
     });
 
     const data = await response.json().catch(() => ({}));
@@ -28,9 +28,23 @@ async function request(url, options = {}) {
     return data;
 }
 
-// Récupérer tous les achats
-export function getAchats() {
-    return request(API_URL);
+// Récupérer les achats avec recherche et pagination
+export function getAchats(params = {}) {
+    const query = new URLSearchParams();
+
+    if (params.fournisseur?.trim()) {
+        query.set("fournisseur", params.fournisseur.trim());
+    }
+
+    if (params.page) {
+        query.set("page", params.page);
+    }
+
+    const url = query.toString()
+        ? `${API_URL}?${query.toString()}`
+        : API_URL;
+
+    return request(url);
 }
 
 // Récupérer un achat

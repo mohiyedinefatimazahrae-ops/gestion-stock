@@ -38,10 +38,23 @@ export default function Achats() {
     const [erreur, setErreur] = useState("");
     const [message, setMessage] = useState("");
 
-    const chargerAchats = useCallback(async () => {
-        const result = await getAchats();
+    const [fournisseurRecherche, setFournisseurRecherche] = useState("");
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const [lastPage, setLastPage] = useState(1);
+    const [totalAchats, setTotalAchats] = useState(0);
+
+    const chargerAchats = useCallback(async (page = 1) => {
+        const result = await getAchats({
+            fournisseur: fournisseurRecherche,
+            page,
+        });
+    
         setAchats(getList(result));
-    }, []);
+        setCurrentPage(result.current_page || 1);
+        setLastPage(result.last_page || 1);
+        setTotalAchats(result.total || 0);
+    }, [fournisseurRecherche]);
 
     const chargerDetails = useCallback(async (id) => {
         const result = await getAchat(id);
@@ -51,34 +64,66 @@ export default function Achats() {
         return achat;
     }, []);
 
+    // Charger les fournisseurs et les produits une seule fois
     useEffect(() => {
         async function initialiser() {
-            setLoading(true);
-            setErreur("");
-
             try {
                 const [
-                    achatsResult,
                     fournisseursResult,
                     produitsResult,
                 ] = await Promise.all([
-                    getAchats(),
                     getFournisseurs(),
                     getProduits(),
                 ]);
 
-                setAchats(getList(achatsResult));
                 setFournisseurs(getList(fournisseursResult));
                 setProduits(getList(produitsResult));
+
             } catch (error) {
                 setErreur(error.message || "Erreur de chargement.");
-            } finally {
-                setLoading(false);
             }
         }
 
         initialiser();
     }, []);
+
+    // Charger les achats avec recherche et pagination
+    useEffect(() => {
+        let actif = true;
+
+        const timer = setTimeout(async () => {
+            setLoading(true);
+            setErreur("");
+
+            try {
+                const result = await getAchats({
+                    fournisseur: fournisseurRecherche,
+                    page: currentPage,
+                });
+
+                if (!actif) return;
+
+                setAchats(getList(result));
+                setCurrentPage(result.current_page || 1);
+                setLastPage(result.last_page || 1);
+                setTotalAchats(result.total || 0);
+
+            } catch (error) {
+                if (actif) {
+                    setErreur(error.message || "Erreur de chargement.");
+                }
+            } finally {
+                if (actif) {
+                    setLoading(false);
+                }
+            }
+        }, 350);
+
+        return () => {
+            actif = false;
+            clearTimeout(timer);
+        };
+    }, [fournisseurRecherche, currentPage]);
 
     function fermerModal() {
         setSelectedAchat(null);
@@ -282,6 +327,35 @@ export default function Achats() {
                     </button>
                 </div>
 
+                {/* Recherche par fournisseur */}
+                <div className="achats-search">
+                    <input
+                        type="search"
+                        placeholder="Rechercher par nom du fournisseur..."
+                        value={fournisseurRecherche}
+                        onChange={(e) => {
+                            setFournisseurRecherche(e.target.value);
+                            setCurrentPage(1);
+                        }}
+                    />
+
+                    <button
+                        type="button"
+                        className="btn-secondary"
+                        disabled={!fournisseurRecherche}
+                        onClick={() => {
+                            setFournisseurRecherche("");
+                            setCurrentPage(1);
+                        }}
+                    >
+                        Réinitialiser
+                    </button>
+                </div>
+                    
+                <p>
+                    {totalAchats} achat(s) trouvé(s)
+                </p>
+
                 <AchatTable
                     achats={achats}
                     loading={loading}
@@ -289,6 +363,31 @@ export default function Achats() {
                     onValider={handleValider}
                     onDelete={handleDelete}
                 />
+                {lastPage > 1 && (
+                    <div className="pagination">
+                        <button
+                            type="button"
+                            className="btn-secondary"
+                            disabled={currentPage === 1 || loading}
+                            onClick={() => setCurrentPage((page) => page - 1)}
+                        >
+                            Précédent
+                        </button>
+                                
+                        <span>
+                            Page {currentPage} sur {lastPage}
+                        </span>
+                                
+                        <button
+                            type="button"
+                            className="btn-secondary"
+                            disabled={currentPage === lastPage || loading}
+                            onClick={() => setCurrentPage((page) => page + 1)}
+                        >
+                            Suivant
+                        </button>
+                    </div>
+                )}
             </section>
 
             {selectedAchat && (

@@ -3398,3 +3398,32 @@ textarea {
         flex-wrap: wrap;
     }
 }
+
+/* search achats  */
+.achats-search {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.achats-search input {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.achats-search button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+    .achats-search {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

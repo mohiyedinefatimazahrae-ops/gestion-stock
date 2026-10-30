@@ -14,14 +14,25 @@ use Illuminate\Validation\ValidationException;
 
 class AchatController extends Controller
 {
-    // Afficher tous les achats
-    public function index()
+    // Afficher les achats avec recherche par fournisseur et pagination
+    public function index(Request $request)
     {
+        $query = Achat::with('fournisseur')
+            ->withCount('details');
+    
+        // Recherche par nom du fournisseur
+        if ($request->filled('fournisseur')) {
+            $nom = $request->fournisseur;
+    
+            $query->whereHas('fournisseur', function ($q) use ($nom) {
+                $q->where('nom_frn', 'LIKE', '%' . $nom . '%');
+            });
+        }
+    
         return response()->json(
-            Achat::with('fournisseur')
-                ->withCount('details')
-                ->orderByDesc('id_achat')
-                ->get()
+            $query->orderByDesc('id_achat')
+                ->paginate(5)
+                ->withQueryString()
         );
     }
 

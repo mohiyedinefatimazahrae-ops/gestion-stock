@@ -159,11 +159,6 @@ export default function MouvementsStockTable({
 
             {!loading && pagination && pagination.total > 0 && (
                 <div className="pagination-mouvements">
-                    <span className="pagination-info">
-                        Affichage de {pagination.from ?? 0} à{" "}
-                        {pagination.to ?? 0} sur {pagination.total} mouvements
-                    </span>
-
                     <div className="pagination-boutons">
                         <button
                             type="button"
@@ -173,15 +168,13 @@ export default function MouvementsStockTable({
                         >
                             Précédent
                         </button>
-
+                        
                         {pages.map((page) => (
                             <button
                                 key={page}
                                 type="button"
                                 className={`pagination-btn ${
-                                    page === pageActuelle
-                                        ? "active"
-                                        : ""
+                                    page === pageActuelle ? "active" : ""
                                 }`}
                                 disabled={loading}
                                 onClick={() => onPageChange(page)}
@@ -192,13 +185,11 @@ export default function MouvementsStockTable({
                                 {page}
                             </button>
                         ))}
-
+            
                         <button
                             type="button"
                             className="pagination-btn"
-                            disabled={
-                                pageActuelle >= dernierePage || loading
-                            }
+                            disabled={pageActuelle >= dernierePage || loading}
                             onClick={() => onPageChange(pageActuelle + 1)}
                         >
                             Suivant

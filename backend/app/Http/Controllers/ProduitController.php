@@ -9,14 +9,23 @@ use Illuminate\Support\Facades\Storage;
 
 class ProduitController extends Controller
 {
-    // Afficher tous les produits
-    public function index()
+    // Afficher les produits avec recherche et pagination
+    public function index(Request $request)
     {
-        $produits = Produit::with(['categorie', 'unite'])
-            ->orderByDesc('id_prd')
-            ->get();
-
-        return response()->json($produits);
+        $query = Produit::with(['categorie', 'unite']);
+    
+        // Recherche par nom du produit
+        if ($request->filled('nom')) {
+            $nom = $request->nom;
+    
+            $query->where('nom_prd', 'LIKE', '%' . $nom . '%');
+        }
+    
+        return response()->json(
+            $query->orderByDesc('id_prd')
+                ->paginate(10)
+                ->withQueryString()
+        );
     }
 
     // Ajouter un produit

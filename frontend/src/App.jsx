@@ -102,11 +102,6 @@ export default function App() {
                         Scanner des produits
                     </button>
                 </nav>
-
-                <div className="sidebar-footer">
-                    Gestion de stock
-                    <span>Administration</span>
-                </div>
             </aside>
 
             <div className="main-content">

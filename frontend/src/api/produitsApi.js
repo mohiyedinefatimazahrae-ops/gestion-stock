@@ -26,8 +26,23 @@ async function request(url, options = {}) {
     return data;
 }
 
-export function getProduits() {
-    return request(API_URL);
+// Récupérer les produits avec recherche et pagination
+export function getProduits(params = {}) {
+    const query = new URLSearchParams();
+
+    if (params.nom?.trim()) {
+        query.set("nom", params.nom.trim());
+    }
+
+    if (params.page) {
+        query.set("page", params.page);
+    }
+
+    const url = query.toString()
+        ? `${API_URL}?${query.toString()}`
+        : API_URL;
+
+    return request(url);
 }
 
 export function createProduit(formData) {

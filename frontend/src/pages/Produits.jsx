@@ -10,6 +10,7 @@ import { getUnites } from "../api/unitesApi";
 
 import ProduitForm from "../components/ProduitForm";
 import ProduitTable from "../components/ProduitTable";
+
 import { useCallback, useEffect, useState } from "react";
 
 export default function Produits({ selectedProductId }) {
@@ -18,49 +19,78 @@ export default function Produits({ selectedProductId }) {
     const [unites, setUnites] = useState([]);
 
     const [produitEnCours, setProduitEnCours] = useState(null);
+    const [afficherFormulaire, setAfficherFormulaire] = useState(false);
+
+    const [nomRecherche, setNomRecherche] = useState("");
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const [lastPage, setLastPage] = useState(1);
+    const [totalProduits, setTotalProduits] = useState(0);
+
     const [loading, setLoading] = useState(true);
     const [erreur, setErreur] = useState("");
     const [message, setMessage] = useState("");
     const [deletingId, setDeletingId] = useState(null);
 
-    const chargerProduits = useCallback(async () => {
-        const data = await getProduits();
-        setProduits(data);
-    }, []);
+    // Charger les produits avec recherche et pagination
+    const chargerProduits = useCallback(async (page = 1) => {
+        setLoading(true);
+        setErreur("");
 
+        try {
+            const result = await getProduits({
+                nom: nomRecherche,
+                page,
+            });
+
+            setProduits(result.data || []);
+            setCurrentPage(result.current_page || 1);
+            setLastPage(result.last_page || 1);
+            setTotalProduits(result.total || 0);
+
+        } catch (error) {
+            setErreur(
+                error.message || "Impossible de charger les produits."
+            );
+        } finally {
+            setLoading(false);
+        }
+    }, [nomRecherche]);
+
+    // Charger les catégories et les unités
     useEffect(() => {
         async function chargerDonnees() {
-            setLoading(true);
-            setErreur("");
-
             try {
-                const [dataProduits, dataCategories, dataUnites] =
-                    await Promise.all([
-                        getProduits(),
-                        getCategories(),
-                        getUnites(),
-                    ]);
+                const [dataCategories, dataUnites] = await Promise.all([
+                    getCategories(),
+                    getUnites(),
+                ]);
 
-                setProduits(dataProduits);
                 setCategories(dataCategories);
                 setUnites(dataUnites);
+
             } catch (error) {
                 setErreur(
-                    error.message ||
-                    "Impossible de charger les données."
+                    error.message || "Impossible de charger les données."
                 );
-            } finally {
-                setLoading(false);
             }
         }
 
         chargerDonnees();
     }, []);
 
+    // Recherche avec délai de 350 ms
     useEffect(() => {
-        if (loading || !selectedProductId || produits.length === 0) {
-            return;
-        }
+        const timer = setTimeout(() => {
+            chargerProduits(currentPage);
+        }, 350);
+
+        return () => clearTimeout(timer);
+    }, [chargerProduits, currentPage]);
+
+    // Aller au produit sélectionné
+    useEffect(() => {
+        if (loading || !selectedProductId) return;
 
         const element = document.getElementById(
             `produit-row-${selectedProductId}`
@@ -88,15 +118,21 @@ export default function Produits({ selectedProductId }) {
             }
 
             setProduitEnCours(null);
-            await chargerProduits();
+            setAfficherFormulaire(false);
+
+            await chargerProduits(1);
+
         } catch (error) {
-            setErreur(error.message || "Erreur lors de l'enregistrement.");
+            setErreur(
+                error.message || "Erreur lors de l'enregistrement."
+            );
             throw error;
         }
     }
 
     function modifierProduit(produit) {
         setProduitEnCours(produit);
+        setAfficherFormulaire(true);
         setErreur("");
         setMessage("");
 
@@ -106,10 +142,10 @@ export default function Produits({ selectedProductId }) {
         });
     }
 
-    function annulerModification() {
+    function annulerFormulaire() {
         setProduitEnCours(null);
+        setAfficherFormulaire(false);
         setErreur("");
-        setMessage("");
     }
 
     async function supprimerProduit(produit) {
@@ -130,9 +166,18 @@ export default function Produits({ selectedProductId }) {
 
             if (produitEnCours?.id_prd === produit.id_prd) {
                 setProduitEnCours(null);
+                setAfficherFormulaire(false);
             }
 
-            await chargerProduits();
+            // Si on supprime le dernier produit d'une page,
+            // revenir à la page précédente si nécessaire.
+            const page = produits.length === 1 && currentPage > 1
+                ? currentPage - 1
+                : currentPage;
+
+            setCurrentPage(page);
+            await chargerProduits(page);
+
         } catch (error) {
             setErreur(
                 error.message || "Impossible de supprimer ce produit."
@@ -144,7 +189,7 @@ export default function Produits({ selectedProductId }) {
 
     return (
         <div className="page-content produits-page">
-            
+
             <div className="page-header">
                 <div>
                     <h1>Gestion des produits</h1>
@@ -153,12 +198,12 @@ export default function Produits({ selectedProductId }) {
                         et les produits finis.
                     </p>
                 </div>
-                        
+
                 <div className="produits-header-actions">
                     <span className="category-count">
-                        {produits.length} produit(s)
+                        {totalProduits} produit(s)
                     </span>
-                        
+
                     <button
                         type="button"
                         onClick={() => {
@@ -170,7 +215,7 @@ export default function Produits({ selectedProductId }) {
                     >
                         Exporter le stock PDF
                     </button>
-                    
+
                     <button
                         type="button"
                         onClick={() => {
@@ -182,44 +227,130 @@ export default function Produits({ selectedProductId }) {
                     >
                         Produits à acheter PDF
                     </button>
+
+                    <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={() => {
+                            if (afficherFormulaire) {
+                                annulerFormulaire();
+                            } else {
+                                setProduitEnCours(null);
+                                setAfficherFormulaire(true);
+                                setErreur("");
+                                setMessage("");
+                            }
+                        }}
+                    >
+                        {afficherFormulaire
+                            ? "Fermer le formulaire"
+                            : "+ Nouveau produit"}
+                    </button>
                 </div>
             </div>
 
-                {erreur && (
-                <div className="alert alert-error">
+            {erreur && (
+                <div className="alert alert-error" role="alert">
                     {erreur}
                 </div>
             )}
 
             {message && (
-                <div className="alert alert-success">
+                <div className="alert alert-success" role="status">
                     {message}
                 </div>
             )}
 
-            {loading ? (
-                <div className="table-card">
-                    Chargement des produits, catégories et unités...
-                </div>
-            ) : (
-                <>
+            {/* Formulaire caché par défaut */}
+            {afficherFormulaire && (
+                <section className="produit-form-section">
                     <ProduitForm
                         produit={produitEnCours}
                         categories={categories}
                         unites={unites}
                         onSubmit={enregistrerProduit}
-                        onCancel={annulerModification}
+                        onCancel={annulerFormulaire}
+                    />
+                </section>
+            )}
+
+            {/* Liste des produits */}
+            <section className="produits-list-section">
+
+                <div className="produits-list-header">
+                    <div>
+                        <h2>Liste des produits</h2>
+                        <p>{totalProduits} produit(s) trouvé(s)</p>
+                    </div>
+                </div>
+
+                {/* Barre de recherche */}
+                <div className="produits-search">
+                    <input
+                        type="search"
+                        placeholder="Rechercher par nom du produit..."
+                        value={nomRecherche}
+                        onChange={(e) => {
+                            setNomRecherche(e.target.value);
+                            setCurrentPage(1);
+                        }}
                     />
 
-                    <ProduitTable
-                        produits={produits}
-                        onEdit={modifierProduit}
-                        onDelete={supprimerProduit}
-                        deletingId={deletingId}
-                        selectedProductId={selectedProductId}
-                    />
-                </>
-            )}
+                    <button
+                        type="button"
+                        className="btn-secondary"
+                        disabled={!nomRecherche}
+                        onClick={() => {
+                            setNomRecherche("");
+                            setCurrentPage(1);
+                        }}
+                    >
+                        Réinitialiser
+                    </button>
+                </div>
+
+                <ProduitTable
+                    produits={produits}
+                    loading={loading}
+                    onEdit={modifierProduit}
+                    onDelete={supprimerProduit}
+                    deletingId={deletingId}
+                    selectedProductId={selectedProductId}
+                />
+
+                {/* Pagination */}
+                {lastPage > 1 && (
+                    <div className="pagination">
+
+                        <button
+                            type="button"
+                            className="btn-secondary"
+                            disabled={currentPage === 1 || loading}
+                            onClick={() => {
+                                setCurrentPage((page) => page - 1);
+                            }}
+                        >
+                            Précédent
+                        </button>
+
+                        <span>
+                            Page {currentPage} sur {lastPage}
+                        </span>
+
+                        <button
+                            type="button"
+                            className="btn-secondary"
+                            disabled={currentPage === lastPage || loading}
+                            onClick={() => {
+                                setCurrentPage((page) => page + 1);
+                            }}
+                        >
+                            Suivant
+                        </button>
+
+                    </div>
+                )}
+            </section>
         </div>
     );
 }

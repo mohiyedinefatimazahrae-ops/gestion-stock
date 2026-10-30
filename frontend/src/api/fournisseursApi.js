@@ -29,8 +29,26 @@ async function request(url, options = {}) {
 }
 
 // Récupérer tous les fournisseurs
-export function getFournisseurs() {
-    return request(API_URL);
+export function getFournisseurs(params = {}) {
+    const query = new URLSearchParams();
+
+    if (params.telephone) {
+        query.append("telephone", params.telephone);
+    }
+
+    if (params.nom) {
+        query.append("nom", params.nom);
+    }
+
+    if (params.page) {
+        query.append("page", params.page);
+    }
+
+    const url = query.toString()
+        ? `${API_URL}?${query.toString()}`
+        : API_URL;
+
+    return request(url);
 }
 
 // Récupérer un fournisseur par ID

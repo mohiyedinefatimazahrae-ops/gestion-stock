@@ -9,14 +9,34 @@ use Illuminate\Validation\Rule;
 class FournisseurController extends Controller
 {
     // Afficher tous les fournisseurs
-    public function index()
-    {
-        return response()->json(
-            Fournisseur::withCount('achats')
-                ->orderByDesc('id_frn')
-                ->get()
-        );
-    }
+    public function index(Request $request)
+        {
+            $query = Fournisseur::withCount('achats');
+
+            // Recherche par numéro de téléphone
+            if ($request->filled('telephone')) {
+                $query->where(
+                    'tel',
+                    'LIKE',
+                    '%' . $request->telephone . '%'
+                );
+            }
+
+            // Recherche par nom : recherche partielle
+            if ($request->filled('nom')) {
+                $query->where(
+                    'nom_frn',
+                    'LIKE',
+                    '%' . $request->nom . '%'
+                );
+            }
+
+            return response()->json(
+                $query->orderByDesc('id_frn')
+                    ->paginate(5)
+                    ->withQueryString()
+            );
+        }
 
     // Ajouter un fournisseur
     public function store(Request $request)

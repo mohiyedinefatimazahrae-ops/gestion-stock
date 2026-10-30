@@ -144,19 +144,6 @@ export default function Produits({ selectedProductId }) {
 
     return (
         <div className="page-content produits-page">
-            {/* <div className="page-header">
-                <div>
-                    <h1>Gestion des produits</h1>
-                    <p>
-                        Gérez les produits, les matières premières
-                        et les produits finis.
-                    </p>
-                </div>
-
-                <span className="category-count">
-                    {produits.length} produit(s)
-                </span>
-            </div> */}
             
             <div className="page-header">
                 <div>

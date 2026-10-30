@@ -161,23 +161,23 @@ class ProduitController extends Controller
             $validated = $request->validate([
                 'code_barres' => 'required|string|max:100',
             ]);
-        
+
             $produit = Produit::with(['categorie', 'unite'])
                 ->where('code_barres', $validated['code_barres'])
                 ->first();
-        
+
             if (!$produit) {
                 return response()->json([
                     'message' => 'Aucun produit trouvé avec ce code-barres.',
                 ], 404);
             }
-        
+
             if (!$produit->actif) {
                 return response()->json([
                     'message' => 'Ce produit est désactivé.',
                 ], 422);
             }
-        
+
             return response()->json([
                 'produit' => $produit,
             ]);

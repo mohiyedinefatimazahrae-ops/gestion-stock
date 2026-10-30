@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { chercherProduitParCodeBarres } from "../api/produitsApi";
 import { enregistrerMouvement } from "../api/mouvementsStockApi";
